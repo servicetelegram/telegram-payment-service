@@ -4,10 +4,9 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ======= TOKEN DEL BOT =======
-# (DA NON METTERE NEL CODICE — VIENE PRESO DALLE VARIABILI D'AMBIENTE DI DETA)
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN non impostato. Inseriscilo nelle Environment Variables di Deta Space.")
+    raise RuntimeError("BOT_TOKEN non impostato. Impostalo su Render nelle Environment Variables.")
 
 bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
 
@@ -121,12 +120,23 @@ def home():
 def webhook():
     if request.headers.get("content-type") != "application/json":
         abort(400)
-    
+
     raw = request.get_data().decode("utf-8")
     update = telebot.types.Update.de_json(raw)
     bot.process_new_updates([update])
     return "OK", 200
 
-# ======= RUN =======
+# ======= IMPOSTAZIONE WEBHOOK =======
+RENDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
+if RENDER_URL:
+    WEBHOOK_URL = RENDER_URL + "/webhook"
+    bot.remove_webhook()
+    bot.set_webhook(url=WEBHOOK_URL)
+    print("Webhook impostato su:", WEBHOOK_URL)
+else:
+    print("ATTENZIONE: RENDER_EXTERNAL_URL non ancora disponibile.")
+
+# ======= RUN DEL SERVER =======
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+
